@@ -1,0 +1,235 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+public class BSP : MonoBehaviour
+{
+    /*  Pseudocode from pcgbook.com
+        Chapter 3: Constructive generation methods for dungeons and levels
+        by Noor Shaker, Antonios Liapis, Julian Togelius, Ricardo Lopes, and Rafael Bidarra
+        1: start with the entire dungeon area (root node of the BSP tree)
+        2: divide the area along a horizontal or vertical line
+        3: select one of the two new partition cells
+        4: if this cell is bigger than the minimal acceptable size:
+        5: go to step 2 (using this cell as the area to be divided)
+        6: select the other partition cell, and go to step 4
+        7: for every partition cell:
+        8: create a room within the cell by randomly choosing two points (top left and bottom right) within its boundaries
+        9: starting from the lowest layers, draw corridors to connect rooms corresponding to children of the same parent
+    */
+
+    [Header("Dungeon Parameters")]
+    [SerializeField] int _dungeonWidth;
+    [SerializeField] int _dungeonHeight;
+    [SerializeField] int _minCellWidth;
+    [SerializeField] int _minCellHeight;
+    [SerializeField] int _offset;
+
+    PartitionCell rootNode;
+
+    [Header("Materials")]
+    [SerializeField] Material _floorMaterial;
+
+    List<PartitionCell> _nodes;
+    List<Corridor> _corridors;
+
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    void Start()
+    {
+        Vector2Int rootBottomRight = new Vector2Int(_dungeonWidth, _dungeonHeight); // check if 1 off errors later
+        rootNode = new PartitionCell(Vector2Int.zero, rootBottomRight); 
+
+        _nodes = new List<PartitionCell>();
+        _corridors = new List<Corridor>();
+
+        Partition(rootNode);
+        CreateRooms(rootNode);
+        
+        Invoke("TestingCorridors", 1f);
+    }
+
+    void TestingCorridors()
+    {
+        CreateCorridors(rootNode);
+        foreach (Corridor corridor in _corridors)
+        {
+            CreateCorrMesh(corridor);
+        }
+    }
+
+    void Partition(PartitionCell node)
+    {
+        _nodes.Add(node);
+        if (node.Width <= (_minCellWidth * 2 + _offset * 2) && node.Height <= (_minCellHeight * 2 + _offset * 2))
+        {
+            return;
+        }
+
+        bool divideHorizontal = Random.value > 0.5;
+
+        PartitionCell left, right;
+
+        if ((divideHorizontal && node.Height > (_minCellHeight * 2 + _offset * 2)) || node.Width < (_minCellWidth * 2 + _offset * 2)) // width
+        {
+            node.WasSplitHorizontal = true;
+            int y = Random.Range(_minCellHeight, node.Height - _minCellHeight);
+            left = new PartitionCell(node.TopLeftCorner, new Vector2Int(node.BottomRightCorner.x, node.TopLeftCorner.y + y), node);
+            right = new PartitionCell(new Vector2Int(node.TopLeftCorner.x, node.TopLeftCorner.y + y), node.BottomRightCorner, node);
+        }
+        else // split vertically, height
+        {
+            node.WasSplitHorizontal = false;
+            int x = Random.Range(_minCellWidth, node.Width - _minCellWidth);
+            left = new PartitionCell(node.TopLeftCorner, new Vector2Int(node.TopLeftCorner.x + x, node.BottomRightCorner.y), node);
+            right = new PartitionCell(new Vector2Int(node.TopLeftCorner.x + x, node.TopLeftCorner.y), node.BottomRightCorner, node);
+        }
+
+        node.AddChild(left);
+        node.AddChild(right);
+
+        Partition(left);
+        Partition(right);
+    }
+
+    void CreateRooms(PartitionCell node)
+    {
+        if (!node.IsLeaf)
+        {
+            CreateRooms(node.ChildrenNodeList[0]);
+            CreateRooms(node.ChildrenNodeList[1]);
+            return;
+        }
+        int leftBound = node.TopLeftCorner.x + _offset;
+        int rightBound = node.BottomRightCorner.x - _offset;
+        int upperBound = node.TopLeftCorner.y + _offset;
+        int lowerBound = node.BottomRightCorner.y - _offset;
+
+        Vector2Int topLeft = new Vector2Int(Random.Range(leftBound, leftBound + _offset), Random.Range(upperBound, upperBound + _offset)); 
+        Vector2Int bottomRight = new Vector2Int(Random.Range(topLeft.x + _minCellWidth, rightBound), Random.Range(topLeft.y + _minCellHeight, lowerBound));
+
+        node.Room = new PartitionRoom(topLeft, bottomRight);
+        CreateMesh(node.Room);
+    }
+
+    void CreateCorridors(PartitionCell node)
+    {
+        if (node.IsLeaf)
+        {
+            return;
+        }
+        PartitionCell left = node.ChildrenNodeList[0];
+        PartitionCell right = node.ChildrenNodeList[1];
+
+        if (left.Room != null && right.Room != null)
+        {
+            Corridor corridor = new Corridor(left.Room, right.Room, node.WasSplitHorizontal);
+            Debug.Log(corridor);
+            _corridors.Add(corridor);
+        }       
+
+        CreateCorridors(left);
+        CreateCorridors(right);
+    }
+
+    void CreateMesh(PartitionRoom room) // Mesh generation largely referenced from https://github.com/SunnyValleyStudio/Unity_Procedural_Dungeon_binary_space_partitioning/blob/master/Version%202%20-%20Finished%20scripts/Scripts/DungeonCreator.cs
+    {
+        Vector2Int bottomLeftCorner = new Vector2Int(room.TopLeftCorner.x, room.BottomRightCorner.y);
+        Vector2Int bottomRightCorner = new Vector2Int(room.BottomRightCorner.x, room.BottomRightCorner.y);
+        Vector2Int topLeftCorner = new Vector2Int(room.TopLeftCorner.x, room.TopLeftCorner.y);
+        Vector2Int topRightCorner = new Vector2Int(room.BottomRightCorner.x, room.TopLeftCorner.y);
+
+        Vector3 bottomLeftV = new Vector3(bottomLeftCorner.x, 0, bottomLeftCorner.y);
+        Vector3 bottomRightV = new Vector3(topRightCorner.x, 0, bottomLeftCorner.y);
+        Vector3 topLeftV = new Vector3(bottomLeftCorner.x, 0, topRightCorner.y);
+        Vector3 topRightV = new Vector3(topRightCorner.x, 0, topRightCorner.y);
+
+        Vector3[] vertices = new Vector3[]
+        {
+            topLeftV,
+            topRightV,
+            bottomLeftV,
+            bottomRightV
+        };
+
+        Vector2[] uvs = new Vector2[vertices.Length];
+        for (int i = 0; i < uvs.Length; i++)
+        {
+            uvs[i] = new Vector2(vertices[i].x, vertices[i].z);
+        }
+
+        int[] triangles = new int[]
+        {
+            0,
+            1,
+            2,
+            2,
+            1,
+            3
+        };
+        Mesh mesh = new Mesh();
+        mesh.vertices = vertices;
+        mesh.uv = uvs;
+        mesh.triangles = triangles;
+
+        GameObject dungeonFloor = new GameObject("TL: " + room.TopLeftCorner + ", BR: " + room.BottomRightCorner, typeof(MeshFilter), typeof(MeshRenderer));
+
+        dungeonFloor.transform.position = Vector3.zero;
+        dungeonFloor.transform.localScale = Vector3.one;
+        dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
+        dungeonFloor.GetComponent<MeshRenderer>().material = _floorMaterial;
+        dungeonFloor.transform.parent = transform;
+    }
+
+    void CreateCorrMesh(Corridor room) // Mesh generation largely referenced from https://github.com/SunnyValleyStudio/Unity_Procedural_Dungeon_binary_space_partitioning/blob/master/Version%202%20-%20Finished%20scripts/Scripts/DungeonCreator.cs
+    {
+        Vector2Int bottomLeftCorner = new Vector2Int(room.TopLeftCorner.x, room.BottomRightCorner.y);
+        Vector2Int bottomRightCorner = new Vector2Int(room.BottomRightCorner.x, room.BottomRightCorner.y);
+        Vector2Int topLeftCorner = new Vector2Int(room.TopLeftCorner.x, room.TopLeftCorner.y);
+        Vector2Int topRightCorner = new Vector2Int(room.BottomRightCorner.x, room.TopLeftCorner.y);
+
+        Vector3 bottomLeftV = new Vector3(bottomLeftCorner.x, 0, bottomLeftCorner.y);
+        Vector3 bottomRightV = new Vector3(topRightCorner.x, 0, bottomLeftCorner.y);
+        Vector3 topLeftV = new Vector3(bottomLeftCorner.x, 0, topRightCorner.y);
+        Vector3 topRightV = new Vector3(topRightCorner.x, 0, topRightCorner.y);
+
+        Vector3[] vertices = new Vector3[]
+        {
+            topLeftV,
+            topRightV,
+            bottomLeftV,
+            bottomRightV
+        };
+
+        Vector2[] uvs = new Vector2[vertices.Length];
+        for (int i = 0; i < uvs.Length; i++)
+        {
+            uvs[i] = new Vector2(vertices[i].x, vertices[i].z);
+        }
+
+        int[] triangles = new int[]
+        {
+            0,
+            1,
+            2,
+            2,
+            1,
+            3
+        };
+        Mesh mesh = new Mesh();
+        mesh.vertices = vertices;
+        mesh.uv = uvs;
+        mesh.triangles = triangles;
+
+        GameObject dungeonFloor = new GameObject("Corr | TL: " + room.TopLeftCorner + ", BR: " + room.BottomRightCorner, typeof(MeshFilter), typeof(MeshRenderer));
+
+        dungeonFloor.transform.position = Vector3.zero;
+        dungeonFloor.transform.localScale = Vector3.one;
+        dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
+        dungeonFloor.GetComponent<MeshRenderer>().material = _floorMaterial;
+        dungeonFloor.transform.parent = transform;
+    }
+
+    void CheckSize()
+    {
+        return;
+    }
+}

@@ -17,29 +17,15 @@ public class Corridor
         this.right = right;
 
         this.splitHorizontal = splitHorizontal;
+        this.width = width;
         CreateCorridor();
     }
 
     void CreateCorridor()
     {
         Debug.Log("CREATE CORRIDOR CALLED");
+        Debug.Log("corridor width: " + width);
         if (splitHorizontal)
-        {
-            if (left == null) Debug.Log("left is null??");
-            if (right == null) Debug.Log("right is null??");
-            
-            int distance = left.BottomRightCorner.x - right.TopLeftCorner.x;
-
-            int upperBound = left.TopLeftCorner.y > right.TopLeftCorner.y ? right.TopLeftCorner.y : left.TopLeftCorner.y;
-            int lowerBound = left.BottomRightCorner.y > right.BottomRightCorner.y ? left.BottomRightCorner.y : right.BottomRightCorner.y;
-            int y = (upperBound + lowerBound) / 2;
-
-            // TopLeftCorner = new Vector2Int(left.BottomRightCorner.x, y);
-            // BottomRightCorner = new Vector2Int(right.TopLeftCorner.x, y + width);
-            BottomRightCorner = new Vector2Int(left.BottomRightCorner.x, y);
-            TopLeftCorner = new Vector2Int(right.TopLeftCorner.x, y + width);
-        }
-        else // left = top, right = bottom
         {
             int distance = right.TopLeftCorner.y - left.BottomRightCorner.y;
 
@@ -47,10 +33,19 @@ public class Corridor
             int rightBound = left.BottomRightCorner.x > right.BottomRightCorner.x ? right.BottomRightCorner.x : left.BottomRightCorner.x;
             int x = (leftBound + rightBound) / 2;
 
-            // TopLeftCorner = new Vector2Int(x, left.BottomRightCorner.y);
-            // BottomRightCorner = new Vector2Int(x + width, right.TopLeftCorner.y);
-            BottomRightCorner = new Vector2Int(x, left.BottomRightCorner.y);
-            TopLeftCorner = new Vector2Int(x + width, right.TopLeftCorner.y);
+            TopLeftCorner = new Vector2Int(x, left.BottomRightCorner.y);
+            BottomRightCorner = new Vector2Int(x + width, right.TopLeftCorner.y);
+        }
+        else // left = top, right = bottom
+        {
+            int distance = left.BottomRightCorner.x - right.TopLeftCorner.x;
+
+            int upperBound = left.TopLeftCorner.y > right.TopLeftCorner.y ? right.TopLeftCorner.y : left.TopLeftCorner.y;
+            int lowerBound = left.BottomRightCorner.y > right.BottomRightCorner.y ? left.BottomRightCorner.y : right.BottomRightCorner.y;
+            int y = (upperBound + lowerBound) / 2;
+
+            TopLeftCorner = new Vector2Int(left.BottomRightCorner.x, y);
+            BottomRightCorner = new Vector2Int(right.TopLeftCorner.x, y + width);
         }
 
         Debug.Log("TLC: " + TopLeftCorner + ", BRC: " + BottomRightCorner);

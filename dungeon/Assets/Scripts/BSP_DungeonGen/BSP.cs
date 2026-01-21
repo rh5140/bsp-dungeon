@@ -53,7 +53,7 @@ public class BSP : MonoBehaviour
         CreateCorridors(rootNode);
         foreach (Corridor corridor in _corridors)
         {
-            CreateCorrMesh(corridor);
+            CreateMesh(corridor);
         }
     }
 
@@ -65,18 +65,19 @@ public class BSP : MonoBehaviour
             return;
         }
 
-        bool divideHorizontal = Random.value > 0.5;
+        bool divideHorizontal = Random.value > 0.5; // i think i swapped "horizontal" and "vertical"
 
         PartitionCell left, right;
 
         if ((divideHorizontal && node.Height > (_minCellHeight * 2 + _offset * 2)) || node.Width < (_minCellWidth * 2 + _offset * 2)) // width
+        // split with horizontal line -> top/bottom partitions (left = top, right = bottom)
         {
             node.WasSplitHorizontal = true;
             int y = Random.Range(_minCellHeight, node.Height - _minCellHeight);
             left = new PartitionCell(node.TopLeftCorner, new Vector2Int(node.BottomRightCorner.x, node.TopLeftCorner.y + y), node);
             right = new PartitionCell(new Vector2Int(node.TopLeftCorner.x, node.TopLeftCorner.y + y), node.BottomRightCorner, node);
         }
-        else // split vertically, height
+        else // split with vertical line -> left/right partitions
         {
             node.WasSplitHorizontal = false;
             int x = Random.Range(_minCellWidth, node.Width - _minCellWidth);
@@ -120,24 +121,14 @@ public class BSP : MonoBehaviour
         PartitionCell left = node.ChildrenNodeList[0];
         PartitionCell right = node.ChildrenNodeList[1];
 
-        if (left.Room != null)
-        {
-            node.Room = left.Room;
-        }
-        else if (right.Room != null)
-        {
-            node.Room = right.Room;
-        }
-        else
-        {
-            node.Room = GetLowerRoom(node);
-        }
+        node.Room = GetLowerRoom(node);
 
         CreateParentRooms(left);
         CreateParentRooms(right);
     }
 
-    PartitionRoom GetLowerRoom(PartitionCell node)
+    // Not really correct because it always chooses the "left" node even if it's not the right one for the corridor
+    PartitionRoom GetLowerRoom(PartitionCell node) 
     {
         if (node.Room != null)
         {
@@ -172,7 +163,7 @@ public class BSP : MonoBehaviour
 
         if (left.Room != null && right.Room != null)
         {
-            Corridor corridor = new Corridor(left.Room, right.Room, node.WasSplitHorizontal);
+            Corridor corridor = new Corridor(left.Room, right.Room, node.WasSplitHorizontal, node.TopLeftCorner, node.BottomRightCorner);
             _corridors.Add(corridor);
         }
 
@@ -180,7 +171,7 @@ public class BSP : MonoBehaviour
         CreateCorridors(right);
     }
 
-    void CreateMesh(PartitionRoom room) // Mesh generation largely referenced from https://github.com/SunnyValleyStudio/Unity_Procedural_Dungeon_binary_space_partitioning/blob/master/Version%202%20-%20Finished%20scripts/Scripts/DungeonCreator.cs
+    void CreateMesh(BSP_Node room) // Mesh generation largely referenced from https://github.com/SunnyValleyStudio/Unity_Procedural_Dungeon_binary_space_partitioning/blob/master/Version%202%20-%20Finished%20scripts/Scripts/DungeonCreator.cs
     {
         Vector2Int bottomLeftCorner = new Vector2Int(room.TopLeftCorner.x, room.BottomRightCorner.y);
         Vector2Int bottomRightCorner = new Vector2Int(room.BottomRightCorner.x, room.BottomRightCorner.y);
@@ -229,52 +220,4 @@ public class BSP : MonoBehaviour
         dungeonFloor.transform.parent = transform;
     }
 
-    void CreateCorrMesh(Corridor room) // Mesh generation largely referenced from https://github.com/SunnyValleyStudio/Unity_Procedural_Dungeon_binary_space_partitioning/blob/master/Version%202%20-%20Finished%20scripts/Scripts/DungeonCreator.cs
-    {
-        Vector2Int bottomLeftCorner = new Vector2Int(room.TopLeftCorner.x, room.BottomRightCorner.y);
-        Vector2Int bottomRightCorner = new Vector2Int(room.BottomRightCorner.x, room.BottomRightCorner.y);
-        Vector2Int topLeftCorner = new Vector2Int(room.TopLeftCorner.x, room.TopLeftCorner.y);
-        Vector2Int topRightCorner = new Vector2Int(room.BottomRightCorner.x, room.TopLeftCorner.y);
-
-        Vector3 bottomLeftV = new Vector3(bottomLeftCorner.x, 0, bottomLeftCorner.y);
-        Vector3 bottomRightV = new Vector3(topRightCorner.x, 0, bottomLeftCorner.y);
-        Vector3 topLeftV = new Vector3(bottomLeftCorner.x, 0, topRightCorner.y);
-        Vector3 topRightV = new Vector3(topRightCorner.x, 0, topRightCorner.y);
-
-        Vector3[] vertices = new Vector3[]
-        {
-            topLeftV,
-            topRightV,
-            bottomLeftV,
-            bottomRightV
-        };
-
-        Vector2[] uvs = new Vector2[vertices.Length];
-        for (int i = 0; i < uvs.Length; i++)
-        {
-            uvs[i] = new Vector2(vertices[i].x, vertices[i].z);
-        }
-
-        int[] triangles = new int[]
-        {
-            0,
-            1,
-            2,
-            2,
-            1,
-            3
-        };
-        Mesh mesh = new Mesh();
-        mesh.vertices = vertices;
-        mesh.uv = uvs;
-        mesh.triangles = triangles;
-
-        GameObject dungeonFloor = new GameObject("Corr | TL: " + room.TopLeftCorner + ", BR: " + room.BottomRightCorner, typeof(MeshFilter), typeof(MeshRenderer));
-
-        dungeonFloor.transform.position = Vector3.zero;
-        dungeonFloor.transform.localScale = Vector3.one;
-        dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
-        dungeonFloor.GetComponent<MeshRenderer>().material = _floorMaterial;
-        dungeonFloor.transform.parent = transform;
-    }
 }

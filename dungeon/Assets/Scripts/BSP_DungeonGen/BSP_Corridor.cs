@@ -2,16 +2,15 @@
 // https://github.com/SunnyValleyStudio/Unity_Procedural_Dungeon_binary_space_partitioning/blob/master/Version%202%20-%20Finished%20scripts/Scripts/CorridorsGenerator.cs
 using UnityEngine;
 
-public class Corridor
+public class Corridor : BSP_Node
 {
-    public Vector2Int TopLeftCorner { get; set; }
-    public Vector2Int BottomRightCorner { get; set; }
     PartitionRoom left;
     PartitionRoom right;
     bool splitHorizontal;
     int width;
 
-    public Corridor(PartitionRoom left, PartitionRoom right, bool splitHorizontal, int width=5)
+    public Corridor(PartitionRoom left, PartitionRoom right, bool splitHorizontal, 
+                    Vector2Int topLeftCorner, Vector2Int bottomRightCorner, int width=5) : base(topLeftCorner, bottomRightCorner)
     {
         this.left = left;
         this.right = right;
@@ -45,7 +44,5 @@ public class Corridor
             TopLeftCorner = new Vector2Int(left.BottomRightCorner.x, y);
             BottomRightCorner = new Vector2Int(right.TopLeftCorner.x, y + width);
         }
-
-        Debug.Log("TLC: " + TopLeftCorner + ", BRC: " + BottomRightCorner);
     }
 }

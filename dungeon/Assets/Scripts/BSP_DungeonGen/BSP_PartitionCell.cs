@@ -1,12 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PartitionCell
+public class PartitionCell : BSP_Node
 {
     List<PartitionCell> _childrenNodeList;
 
-    public Vector2Int TopLeftCorner { get; set; }
-    public Vector2Int BottomRightCorner { get; set; }
     public PartitionCell Parent { get; set; }
 
     public List<PartitionCell> ChildrenNodeList { get => _childrenNodeList; }
@@ -19,10 +17,8 @@ public class PartitionCell
 
     public PartitionRoom Room { get; set; }
 
-    public PartitionCell(Vector2Int topLeftCorner, Vector2Int bottomRightCorner, PartitionCell parent = null)
+    public PartitionCell(Vector2Int topLeftCorner, Vector2Int bottomRightCorner, PartitionCell parent = null) : base(topLeftCorner, bottomRightCorner)
     {
-        this.TopLeftCorner = topLeftCorner;
-        this.BottomRightCorner = bottomRightCorner;
         this.Parent = parent;
         _childrenNodeList = new List<PartitionCell>();
     }

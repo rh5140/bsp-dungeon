@@ -7,6 +7,7 @@ public abstract class BSP_Node
 
     public int Width { get => (int)(BottomRightCorner.x - TopLeftCorner.x); }
     public int Height { get => (int)(BottomRightCorner.y - TopLeftCorner.y); }
+    public Vector3 Center { get => new Vector3(TopLeftCorner.x + 0.5f * Width, 1, TopLeftCorner.y + 0.5f * Height); }
 
     public BSP_Node(Vector2Int topLeftCorner, Vector2Int bottomRightCorner)
     {

@@ -31,7 +31,15 @@ public class BSP : MonoBehaviour
 
     [Header("Materials")]
     [SerializeField] Material _floorMaterial;
+
+    [Header("Prefabs")]
     [SerializeField] GameObject tilePrefab;
+    [SerializeField] GameObject playerPrefab;
+    [SerializeField] GameObject bossPrefab;
+    [SerializeField] GameObject exitPrefab;
+    [SerializeField] GameObject enemyPrefab;
+    [SerializeField] GameObject doorPrefab;
+    [SerializeField] GameObject breakablePrefab;
 
     List<BSP_Node> _nodes;
     List<BSP_Node> _rooms;
@@ -68,6 +76,80 @@ public class BSP : MonoBehaviour
         // CreateFloorMesh();
         CreateFloorTiles();
         RemoveInteriorWalls();
+
+        SetUpDungeon();
+    }
+
+    void SetUpDungeon()
+    {
+        bool bossSpawned = false;
+        int numRooms = _rooms.Count();
+        // First room is entrance / player spawn point
+        Instantiate(playerPrefab, _rooms[0].Center, Quaternion.identity);
+
+        for (int i = 1; i < numRooms; i++)
+        {
+            int rand = Random.Range(0, 10);
+            if (rand == 9)
+            {
+                Instantiate(bossPrefab, _rooms[i].Center, Quaternion.identity);
+                bossSpawned = true;
+            }
+            else
+            {
+                PopulateRoom(_rooms[i]);
+            }
+            if (i == numRooms - 2 && !bossSpawned)
+            {
+                Instantiate(bossPrefab, _rooms[i].Center, Quaternion.identity);
+            }
+            if (i == numRooms - 1)
+            {
+                Instantiate(exitPrefab, _rooms[i].Center, exitPrefab.transform.rotation);
+            }
+        }
+
+        foreach (Corridor corridor in _corridors)
+        {
+            PopulateCorridor(corridor);
+        }
+    }
+
+    void PopulateRoom(BSP_Node node)
+    {
+        int rand = Random.Range(0,4);
+        if (rand > 1)
+        {
+            for (int x = node.TopLeftCorner.x + 1; x < node.Width + node.TopLeftCorner.x - 1; x++)
+            {
+                for (int y = node.TopLeftCorner.y + 1; y < node.Height + node.TopLeftCorner.y - 1; y++)
+                {
+                    int rand2 = Random.Range(0,30);
+                    if (rand2 > 28)
+                    {
+                        Instantiate(enemyPrefab, new Vector3(x,0.5f,y), Quaternion.identity);
+                    }
+                }
+            }
+        }
+    }
+
+    void PopulateCorridor(BSP_Node corridor)
+    {
+        int rand = Random.Range(0,4);
+        // need to check which direction the corridor is in
+        switch (rand)
+        {
+            case 0: // door
+                Instantiate(doorPrefab, corridor.Center, Quaternion.identity);
+                break;
+            case 1: // breakable
+                Instantiate(breakablePrefab, corridor.Center, Quaternion.identity);
+                break;
+            default:
+                break;
+        }
+        return;
     }
 
     void CreateFloorTiles()

@@ -43,7 +43,8 @@ public class BSP : MonoBehaviour
 
         Partition(rootNode);
         CreateRooms(rootNode);
-        
+        CreateParentRooms(rootNode);
+
         Invoke("TestingCorridors", 1f);
     }
 
@@ -110,6 +111,56 @@ public class BSP : MonoBehaviour
         CreateMesh(node.Room);
     }
 
+    void CreateParentRooms(PartitionCell node)
+    {
+        if (node.Room != null)
+        {
+            return;
+        }
+        PartitionCell left = node.ChildrenNodeList[0];
+        PartitionCell right = node.ChildrenNodeList[1];
+
+        if (left.Room != null)
+        {
+            node.Room = left.Room;
+        }
+        else if (right.Room != null)
+        {
+            node.Room = right.Room;
+        }
+        else
+        {
+            node.Room = GetLowerRoom(node);
+        }
+
+        CreateParentRooms(left);
+        CreateParentRooms(right);
+    }
+
+    PartitionRoom GetLowerRoom(PartitionCell node)
+    {
+        if (node.Room != null)
+        {
+            return node.Room;
+        }
+        
+        PartitionCell left = node.ChildrenNodeList[0];
+        PartitionCell right = node.ChildrenNodeList[1];
+
+        if (left.Room != null)
+        {
+            return left.Room;
+        }
+        else if (right.Room != null)
+        {
+            return right.Room;
+        }
+        else
+        {
+            return GetLowerRoom(left);
+        }
+    }
+
     void CreateCorridors(PartitionCell node)
     {
         if (node.IsLeaf)
@@ -122,9 +173,8 @@ public class BSP : MonoBehaviour
         if (left.Room != null && right.Room != null)
         {
             Corridor corridor = new Corridor(left.Room, right.Room, node.WasSplitHorizontal);
-            Debug.Log(corridor);
             _corridors.Add(corridor);
-        }       
+        }
 
         CreateCorridors(left);
         CreateCorridors(right);
@@ -226,10 +276,5 @@ public class BSP : MonoBehaviour
         dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
         dungeonFloor.GetComponent<MeshRenderer>().material = _floorMaterial;
         dungeonFloor.transform.parent = transform;
-    }
-
-    void CheckSize()
-    {
-        return;
     }
 }

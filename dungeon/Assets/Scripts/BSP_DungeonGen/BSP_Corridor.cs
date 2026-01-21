@@ -23,8 +23,6 @@ public class Corridor
 
     void CreateCorridor()
     {
-        Debug.Log("CREATE CORRIDOR CALLED");
-        Debug.Log("corridor width: " + width);
         if (splitHorizontal)
         {
             int distance = right.TopLeftCorner.y - left.BottomRightCorner.y;

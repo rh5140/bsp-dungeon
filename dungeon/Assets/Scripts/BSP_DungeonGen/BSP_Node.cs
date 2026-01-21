@@ -13,4 +13,9 @@ public abstract class BSP_Node
         this.TopLeftCorner = topLeftCorner;
         this.BottomRightCorner = bottomRightCorner;
     }
+
+    public override string ToString()
+    {
+        return "TL: " + TopLeftCorner + ", W:" + Width + ", H: " + Height;
+    }
 }

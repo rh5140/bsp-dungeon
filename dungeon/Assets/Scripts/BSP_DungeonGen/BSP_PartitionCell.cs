@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,7 +9,7 @@ public class PartitionCell : BSP_Node
     public PartitionCell Parent { get; set; }
 
     public List<PartitionCell> ChildrenNodeList { get => _childrenNodeList; }
-    public bool IsLeaf { get => _childrenNodeList.Count == 0; }
+    public bool IsLeaf { get => !_childrenNodeList.Any(); }
 
     public int Width { get => (int)(BottomRightCorner.x - TopLeftCorner.x); }
     public int Height { get => (int)(BottomRightCorner.y - TopLeftCorner.y); }
@@ -31,10 +32,5 @@ public class PartitionCell : BSP_Node
     public void RemoveChild(PartitionCell child)
     {
         _childrenNodeList.Remove(child);
-    }
-
-    public override string ToString()
-    {
-        return "TL: " + TopLeftCorner + ", BR: " + BottomRightCorner + ", Width:" + Width + ", Height: " + Height;
     }
 }

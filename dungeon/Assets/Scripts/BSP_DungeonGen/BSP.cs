@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class BSP : MonoBehaviour
@@ -24,36 +25,102 @@ public class BSP : MonoBehaviour
     [SerializeField] int _minCellHeight;
     [SerializeField] int _offset;
 
-    PartitionCell rootNode;
+    [Header("Random Seed")]
+    [SerializeField] bool _useRandomSeed = true;
+    [SerializeField] int _seed = 0;
 
     [Header("Materials")]
     [SerializeField] Material _floorMaterial;
+    [SerializeField] GameObject tilePrefab;
 
-    List<PartitionCell> _nodes;
-    List<Corridor> _corridors;
+    List<BSP_Node> _nodes;
+    List<BSP_Node> _rooms;
+    List<BSP_Node> _corridors;
+    PartitionCell rootNode;
+
+    List<DungeonTile> placedTiles;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        if (_useRandomSeed)
+        {
+            _seed = System.Environment.TickCount;
+        }
+        Random.InitState(_seed);
+        CreateDungeon();
+    }
+
+    void CreateDungeon()
+    {
         Vector2Int rootBottomRight = new Vector2Int(_dungeonWidth, _dungeonHeight); // check if 1 off errors later
         rootNode = new PartitionCell(Vector2Int.zero, rootBottomRight); 
 
-        _nodes = new List<PartitionCell>();
-        _corridors = new List<Corridor>();
+        _nodes = new List<BSP_Node>();
+        _rooms = new List<BSP_Node>();
+        _corridors = new List<BSP_Node>();
+        placedTiles = new List<DungeonTile>();
 
         Partition(rootNode);
         CreateRooms(rootNode);
         CreateParentRooms(rootNode);
-
-        Invoke("TestingCorridors", 1f);
+        CreateCorridors(rootNode);
+        // CreateFloorMesh();
+        CreateFloorTiles();
+        RemoveInteriorWalls();
     }
 
-    void TestingCorridors()
+    void CreateFloorTiles()
     {
-        CreateCorridors(rootNode);
-        foreach (Corridor corridor in _corridors)
+        List<BSP_Node> floorMesh = _rooms.Concat(_corridors).ToList();
+        foreach (BSP_Node node in floorMesh)
         {
-            CreateMesh(corridor);
+            GameObject parentGO = new GameObject("Node | " + node);
+            parentGO.transform.parent = this.transform;
+
+            for (int x = node.TopLeftCorner.x; x < node.Width + node.TopLeftCorner.x; x++)
+            {
+                for (int y = node.TopLeftCorner.y; y < node.Height + node.TopLeftCorner.y; y++)
+                {
+                    if (HasTile(x, y)) 
+                    {
+                        continue;
+                    }
+                    GameObject tile = Instantiate(tilePrefab, new Vector3(x, 0, y), Quaternion.identity);
+                    tile.transform.parent = parentGO.transform;
+                    placedTiles.Add(new DungeonTile(x, y, tile));
+                }
+            }
+        }
+    }
+
+    void RemoveInteriorWalls()
+    {
+        foreach (DungeonTile tile in placedTiles)
+        {
+            Transform n = tile.tile.transform.Find("Wall_N");
+            Transform s = tile.tile.transform.Find("Wall_S");
+            Transform e = tile.tile.transform.Find("Wall_E");
+            Transform w = tile.tile.transform.Find("Wall_W");
+
+            if (HasTile(tile.x, tile.y + 1)) Destroy(n?.gameObject);
+            if (HasTile(tile.x, tile.y - 1)) Destroy(s?.gameObject);
+            if (HasTile(tile.x + 1, tile.y)) Destroy(e?.gameObject);
+            if (HasTile(tile.x - 1, tile.y)) Destroy(w?.gameObject);
+        }
+    }
+
+    bool HasTile(int x, int y)
+    {
+        return placedTiles.Exists(t => t.x == x && t.y == y);
+    }
+
+    void CreateFloorMesh()
+    {
+        List<BSP_Node> floorMesh = _rooms.Concat(_corridors).ToList();
+        foreach (BSP_Node node in floorMesh)
+        {
+            CreateMesh(node);
         }
     }
 
@@ -109,7 +176,7 @@ public class BSP : MonoBehaviour
         Vector2Int bottomRight = new Vector2Int(Random.Range(topLeft.x + _minCellWidth, rightBound), Random.Range(topLeft.y + _minCellHeight, lowerBound));
 
         node.Room = new PartitionRoom(topLeft, bottomRight);
-        CreateMesh(node.Room);
+        _rooms.Add(node.Room);
     }
 
     void CreateParentRooms(PartitionCell node)

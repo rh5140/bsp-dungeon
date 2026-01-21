@@ -466,7 +466,10 @@ MonoBehaviour:
   _minCellWidth: 20
   _minCellHeight: 20
   _offset: 2
+  _useRandomSeed: 0
+  _seed: 417022812
   _floorMaterial: {fileID: 2100000, guid: 7c626b1ddff9cf14080a8e5e88d38870, type: 2}
+  tilePrefab: {fileID: 7032650520578648343, guid: 9baa81b04ff7a214cb63122a361eeaf8, type: 3}
 --- !u!4 &1643430855
 Transform:
   m_ObjectHideFlags: 0

@@ -1,13 +1,12 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
-public class NextLevel : MonoBehaviour
+public class DisappearOnOverlap : MonoBehaviour
 {
     void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.tag == "Player")
         {
-            SceneManager.LoadScene("BSP_2");
+            Destroy(gameObject);
         }
     }
 }

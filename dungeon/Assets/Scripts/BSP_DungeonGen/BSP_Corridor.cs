@@ -6,7 +6,7 @@ public class Corridor : BSP_Node
 {
     PartitionRoom left;
     PartitionRoom right;
-    bool splitHorizontal;
+    public bool splitHorizontal;
     int width;
 
     public Corridor(PartitionRoom left, PartitionRoom right, bool splitHorizontal, 

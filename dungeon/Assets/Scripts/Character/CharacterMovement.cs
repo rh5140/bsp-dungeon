@@ -5,7 +5,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class Example : MonoBehaviour
+public class CharacterMovement : MonoBehaviour
 {
     private float playerSpeed = 20.0f;
     private float jumpHeight = 1.5f;
@@ -24,6 +24,10 @@ public class Example : MonoBehaviour
 
     [Header("Camera")]
     public GameObject followCamera;
+
+    // Super hardcoded xd
+    public GameObject attack;
+    public bool isAttacking = false;
 
     private void Awake()
     {
@@ -77,5 +81,18 @@ public class Example : MonoBehaviour
     public void OnToggleCamera()
     {
         followCamera.SetActive(!followCamera.activeSelf);
+    }
+
+    public void OnAttack()
+    {
+        attack.SetActive(true);
+        isAttacking = true;
+        Invoke("DisableAttack", 0.5f);
+    }
+
+    void DisableAttack()
+    {
+        isAttacking = false;
+        attack.SetActive(false);
     }
 }

@@ -40,6 +40,7 @@ public class BSP : MonoBehaviour
     [SerializeField] GameObject enemyPrefab;
     [SerializeField] GameObject doorPrefab;
     [SerializeField] GameObject breakablePrefab;
+    [SerializeField] GameObject lootPrefab;
 
     List<BSP_Node> _nodes;
     List<BSP_Node> _rooms;
@@ -82,30 +83,25 @@ public class BSP : MonoBehaviour
 
     void SetUpDungeon()
     {
-        bool bossSpawned = false;
         int numRooms = _rooms.Count();
         // First room is entrance / player spawn point
         Instantiate(playerPrefab, _rooms[0].Center, Quaternion.identity);
 
         for (int i = 1; i < numRooms; i++)
         {
-            int rand = Random.Range(0, 10);
-            if (rand == 9)
+
+            if (i == numRooms - 2)
             {
                 Instantiate(bossPrefab, _rooms[i].Center, Quaternion.identity);
-                bossSpawned = true;
+            }
+            else if (i == numRooms - 1)
+            {
+                Instantiate(exitPrefab, _rooms[i].Center, exitPrefab.transform.rotation);
             }
             else
             {
-                PopulateRoom(_rooms[i]);
-            }
-            if (i == numRooms - 2 && !bossSpawned)
-            {
-                Instantiate(bossPrefab, _rooms[i].Center, Quaternion.identity);
-            }
-            if (i == numRooms - 1)
-            {
-                Instantiate(exitPrefab, _rooms[i].Center, exitPrefab.transform.rotation);
+                
+            PopulateRoom(_rooms[i]);
             }
         }
 
@@ -117,8 +113,8 @@ public class BSP : MonoBehaviour
 
     void PopulateRoom(BSP_Node node)
     {
-        int rand = Random.Range(0,4);
-        if (rand > 1)
+        int rand = Random.Range(0,6);
+        if (rand > 2)
         {
             for (int x = node.TopLeftCorner.x + 1; x < node.Width + node.TopLeftCorner.x - 1; x++)
             {
@@ -127,7 +123,41 @@ public class BSP : MonoBehaviour
                     int rand2 = Random.Range(0,30);
                     if (rand2 > 28)
                     {
-                        Instantiate(enemyPrefab, new Vector3(x,0.5f,y), Quaternion.identity);
+                        Instantiate(enemyPrefab, new Vector3(x,1f,y), Quaternion.identity);
+                    }
+                }
+            }
+        }
+        else if (rand == 1)
+        {
+            
+            for (int x = node.TopLeftCorner.x + 1; x < node.Width + node.TopLeftCorner.x - 1; x++)
+            {
+                for (int y = node.TopLeftCorner.y + 1; y < node.Height + node.TopLeftCorner.y - 1; y++)
+                {
+                    int rand2 = Random.Range(0,500);
+                    if (rand2 > 497)
+                    {
+                        Instantiate(lootPrefab, new Vector3(x,1f,y), Quaternion.identity);
+                    }
+                }
+            }
+        }
+        else
+        {
+            
+            for (int x = node.TopLeftCorner.x + 1; x < node.Width + node.TopLeftCorner.x - 1; x++)
+            {
+                for (int y = node.TopLeftCorner.y + 1; y < node.Height + node.TopLeftCorner.y - 1; y++)
+                {
+                    int rand2 = Random.Range(0,100);
+                    if (rand2 > 97)
+                    {
+                        Instantiate(enemyPrefab, new Vector3(x,1f,y), Quaternion.identity);
+                    }
+                    else if (rand2 < 1)
+                    {
+                        Instantiate(lootPrefab, new Vector3(x,1f,y), Quaternion.identity);
                     }
                 }
             }
@@ -136,20 +166,36 @@ public class BSP : MonoBehaviour
 
     void PopulateCorridor(BSP_Node corridor)
     {
-        int rand = Random.Range(0,4);
-        // need to check which direction the corridor is in
+        int rand = Random.Range(0,10);
         switch (rand)
         {
-            case 0: // door
-                Instantiate(doorPrefab, corridor.Center, Quaternion.identity);
+            case 0:
                 break;
             case 1: // breakable
-                Instantiate(breakablePrefab, corridor.Center, Quaternion.identity);
+                GenerateDoors(corridor, breakablePrefab);
+                Instantiate(lootPrefab, corridor.Center, Quaternion.identity);
                 break;
             default:
+                GenerateDoors(corridor, doorPrefab);
                 break;
         }
         return;
+    }
+
+    void GenerateDoors(BSP_Node corridor, GameObject door)
+    {
+        Corridor corr = (Corridor) corridor;
+        // need to check which direction the corridor is in
+        if (corr.splitHorizontal)
+        {
+            Instantiate(door, new Vector3(corridor.TopLeftCorner.x + 2.5f, 2f, corridor.TopLeftCorner.y), Quaternion.identity); // super hardcoded sorry
+            Instantiate(door, new Vector3(corridor.BottomRightCorner.x - 2.5f, 2f, corridor.BottomRightCorner.y), Quaternion.identity);
+        }
+        else
+        {
+            Instantiate(door, new Vector3(corridor.TopLeftCorner.x, 2f, corridor.TopLeftCorner.y + 2.5f), Quaternion.Euler(0,90,0)); // super hardcoded sorry
+            Instantiate(door, new Vector3(corridor.BottomRightCorner.x, 2f, corridor.BottomRightCorner.y - 2.5f), Quaternion.Euler(0,90,0));
+        }
     }
 
     void CreateFloorTiles()
@@ -186,7 +232,23 @@ public class BSP : MonoBehaviour
             Transform w = tile.tile.transform.Find("Wall_W");
 
             if (HasTile(tile.x, tile.y + 1)) Destroy(n?.gameObject);
+            else 
+            {
+                int rand = Random.Range(0,3);
+                if (rand == 0)
+                {
+                    n.gameObject.transform.GetChild(0).gameObject.SetActive(true);
+                }
+            }
             if (HasTile(tile.x, tile.y - 1)) Destroy(s?.gameObject);
+            else 
+            {
+                int rand = Random.Range(0,3);
+                if (rand == 0)
+                {
+                    s.gameObject.transform.GetChild(0).gameObject.SetActive(true);
+                }
+            }
             if (HasTile(tile.x + 1, tile.y)) Destroy(e?.gameObject);
             if (HasTile(tile.x - 1, tile.y)) Destroy(w?.gameObject);
         }

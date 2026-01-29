@@ -52,6 +52,9 @@ public class BasicPerlinTerrain : MonoBehaviour
     void Start()
     {
         GenerateTrees();
+        GenerateRocks(1, 200, 3 ,5);
+        GenerateRocks(2, 150, 5 ,2);
+        GenerateRocks(3, 150, 2 ,5); // generates a tree oops, refactor later
     }
 
     void Initialize()
@@ -140,6 +143,31 @@ public class BasicPerlinTerrain : MonoBehaviour
             TreeInstance treeTemp = new TreeInstance();
             treeTemp.position = new Vector3(treeX, 0, treeY);
             treeTemp.prototypeIndex = 0;
+            treeTemp.widthScale = 1f;
+            treeTemp.heightScale = 1f;
+            treeTemp.color = Color.white;
+            treeTemp.lightmapColor = Color.white;
+            terrain.AddTreeInstance(treeTemp);
+        }
+    }
+
+    
+    void GenerateRocks(int idx, int numRocks, int base1, int base2)
+    {
+        for (int i = 0; i < numRocks; i++)
+        {
+            float treeX = Halton(i, base1);
+            float treeY = Halton(i, base2);
+            //float treeZ = terrainData.GetHeight(treeX * resolution, treeY * resolution);
+            // Skip if in lake
+            if ((Mathf.Pow(treeX * resolution - centerX, 2) + Mathf.Pow(treeY * resolution - centerY, 2) <= Mathf.Pow(radius,2)))
+            {
+                continue;
+            }
+            // https://stackoverflow.com/questions/53880451/add-trees-to-terrain-c-sharp-with-treeinstance
+            TreeInstance treeTemp = new TreeInstance();
+            treeTemp.position = new Vector3(treeX, 0, treeY);
+            treeTemp.prototypeIndex = idx;
             treeTemp.widthScale = 1f;
             treeTemp.heightScale = 1f;
             treeTemp.color = Color.white;

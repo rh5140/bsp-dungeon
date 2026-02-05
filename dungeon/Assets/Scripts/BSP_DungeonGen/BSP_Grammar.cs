@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class BSP : MonoBehaviour
+public class BSP_Grammar : MonoBehaviour
 {
     /*  Pseudocode from pcgbook.com
         Chapter 3: Constructive generation methods for dungeons and levels
@@ -35,17 +35,25 @@ public class BSP : MonoBehaviour
     [Header("Prefabs")]
     [SerializeField] GameObject tilePrefab;
     [SerializeField] GameObject playerPrefab;
+    [SerializeField] GameObject startPrefab;
     [SerializeField] GameObject bossPrefab;
     [SerializeField] GameObject exitPrefab;
-    [SerializeField] GameObject enemyPrefab;
     [SerializeField] GameObject doorPrefab;
     [SerializeField] GameObject breakablePrefab;
     [SerializeField] GameObject lootPrefab;
+
+    [SerializeField] GameObject enemyPrefab;
+    [SerializeField] GameObject enemy2Prefab;
+    [SerializeField] GameObject enemy3Prefab;
+
+    [SerializeField] GameObject otherPrefab;
 
     List<BSP_Node> _nodes;
     List<BSP_Node> _rooms;
     List<BSP_Node> _corridors;
     PartitionCell rootNode;
+
+    List<PartitionCell> _cells;
 
     List<DungeonTile> placedTiles;
 
@@ -66,6 +74,7 @@ public class BSP : MonoBehaviour
         rootNode = new PartitionCell(Vector2Int.zero, rootBottomRight); 
 
         _nodes = new List<BSP_Node>();
+        _cells = new List<PartitionCell>();
         _rooms = new List<BSP_Node>();
         _corridors = new List<BSP_Node>();
         placedTiles = new List<DungeonTile>();
@@ -86,21 +95,33 @@ public class BSP : MonoBehaviour
         int numRooms = _rooms.Count();
         // First room is entrance / player spawn point
         Instantiate(playerPrefab, _rooms[0].Center, Quaternion.identity);
+        Instantiate(startPrefab, _rooms[0].Center,Quaternion.identity);
 
+        // Initial implementation was a little similar to grammar already...
         for (int i = 1; i < numRooms; i++)
         {
-
+            // Enforce penultimate room has boss
             if (i == numRooms - 2)
             {
-                Instantiate(bossPrefab, _rooms[i].Center, Quaternion.identity);
+                Instantiate(bossPrefab, _rooms[i].Center, Quaternion.identity, transform);
             }
+            // Enforce last room has exit
             else if (i == numRooms - 1)
             {
-                Instantiate(exitPrefab, _rooms[i].Center, exitPrefab.transform.rotation);
+                Instantiate(exitPrefab, _rooms[i].Center, exitPrefab.transform.rotation, transform);
+            }
+            else if (_cells[i].IsLeaf) // again very awkward using separate list -- pretty sure i could do it all with the same list... i think cells != rooms though
+            {
+                int rand = Random.Range(0,5);
+                if (rand == 1) // 20% chance of tiny enemy instead of treasure
+                {
+                    Instantiate(otherPrefab, _rooms[i].Center, Quaternion.identity,transform);
+                }
+                else PopulateWithLoot(_rooms[i]);
             }
             else
             {
-                PopulateRoom(_rooms[i]);
+                PopulateEnemiesBasedOnDistance(_rooms[i]);
             }
         }
 
@@ -110,56 +131,67 @@ public class BSP : MonoBehaviour
         }
     }
 
+    void PopulateEnemiesBasedOnDistance(BSP_Node node)
+    {
+        float distance = Vector2.Distance(node.Center, _rooms[0].Center);
+        if (distance > 50) // VERY ARBITRARY distance
+        {
+            int rand = Random.Range(0,100);
+            if (rand < 40) // 40% medium enemy
+            {
+                Instantiate(enemy2Prefab, node.Center, Quaternion.identity, transform);
+            }
+            else // 60% big enemy
+            {
+                Instantiate(enemy3Prefab, node.Center, Quaternion.identity, transform);
+            }
+        }
+        else if (distance > 10) // middle distance
+        {
+            int rand = Random.Range(0,100);
+            if (rand < 40) // 40% small enemy
+            {
+                Instantiate(enemyPrefab, node.Center, Quaternion.identity, transform);
+            }
+            else if (rand < 90) // 50% medium enemy
+            {
+                Instantiate(enemy2Prefab, node.Center, Quaternion.identity, transform);
+            }
+            else // 10% big enemy
+            {
+                Instantiate(enemy3Prefab, node.Center, Quaternion.identity, transform);
+            }
+        }
+        else
+        {
+            Instantiate(enemyPrefab, node.Center, Quaternion.identity, transform);
+        }
+    }
+
     void PopulateRoom(BSP_Node node)
     {
         int rand = Random.Range(0,6);
         if (rand > 2)
         {
-            for (int x = node.TopLeftCorner.x + 1; x < node.Width + node.TopLeftCorner.x - 1; x++)
-            {
-                for (int y = node.TopLeftCorner.y + 1; y < node.Height + node.TopLeftCorner.y - 1; y++)
-                {
-                    int rand2 = Random.Range(0,30);
-                    if (rand2 > 28)
-                    {
-                        Instantiate(enemyPrefab, new Vector3(x,1f,y), Quaternion.identity);
-                    }
-                }
-            }
+            Instantiate(enemyPrefab, node.Center, Quaternion.identity, transform);
         }
         else if (rand == 1)
         {
-            
-            for (int x = node.TopLeftCorner.x + 1; x < node.Width + node.TopLeftCorner.x - 1; x++)
-            {
-                for (int y = node.TopLeftCorner.y + 1; y < node.Height + node.TopLeftCorner.y - 1; y++)
-                {
-                    int rand2 = Random.Range(0,500);
-                    if (rand2 > 497)
-                    {
-                        Instantiate(lootPrefab, new Vector3(x,1f,y), Quaternion.identity);
-                    }
-                }
-            }
+           Instantiate(lootPrefab, node.Center, Quaternion.identity, transform);
         }
         else
         {
-            
-            for (int x = node.TopLeftCorner.x + 1; x < node.Width + node.TopLeftCorner.x - 1; x++)
-            {
-                for (int y = node.TopLeftCorner.y + 1; y < node.Height + node.TopLeftCorner.y - 1; y++)
-                {
-                    int rand2 = Random.Range(0,100);
-                    if (rand2 > 97)
-                    {
-                        Instantiate(enemyPrefab, new Vector3(x,1f,y), Quaternion.identity);
-                    }
-                    else if (rand2 < 1)
-                    {
-                        Instantiate(lootPrefab, new Vector3(x,1f,y), Quaternion.identity);
-                    }
-                }
-            }
+            Instantiate(enemyPrefab, node.Center, Quaternion.identity, transform);
+        }
+    }
+
+    void PopulateWithLoot(BSP_Node node)
+    {
+        int rand = Random.Range(0,10);
+        GameObject loot = Instantiate(lootPrefab, node.Center, Quaternion.identity, transform);
+        if (rand == 1) // 10% chance of being big treasure
+        {
+            loot.transform.localScale = new Vector3(2,2,2);
         }
     }
 
@@ -172,7 +204,7 @@ public class BSP : MonoBehaviour
                 break;
             case 1: // breakable
                 GenerateDoors(corridor, breakablePrefab);
-                Instantiate(lootPrefab, corridor.Center, Quaternion.identity);
+                // Instantiate(lootPrefab, corridor.Center, Quaternion.identity);
                 break;
             default:
                 GenerateDoors(corridor, doorPrefab);
@@ -231,23 +263,7 @@ public class BSP : MonoBehaviour
             Transform w = tile.tile.transform.Find("Wall_W");
 
             if (HasTile(tile.x, tile.y + 1)) Destroy(n?.gameObject);
-            else 
-            {
-                int rand = Random.Range(0,3);
-                if (rand == 0)
-                {
-                    n.gameObject.transform.GetChild(0).gameObject.SetActive(true);
-                }
-            }
             if (HasTile(tile.x, tile.y - 1)) Destroy(s?.gameObject);
-            else 
-            {
-                int rand = Random.Range(0,3);
-                if (rand == 0)
-                {
-                    s.gameObject.transform.GetChild(0).gameObject.SetActive(true);
-                }
-            }
             if (HasTile(tile.x + 1, tile.y)) Destroy(e?.gameObject);
             if (HasTile(tile.x - 1, tile.y)) Destroy(w?.gameObject);
         }
@@ -270,6 +286,7 @@ public class BSP : MonoBehaviour
     void Partition(PartitionCell node)
     {
         _nodes.Add(node);
+        _cells.Add(node); // Really awkward to duplicate code.. but too tired to think about how to use my inheritance smartly
         if (node.Width <= (_minCellWidth * 2 + _offset * 2) && node.Height <= (_minCellHeight * 2 + _offset * 2))
         {
             return;
